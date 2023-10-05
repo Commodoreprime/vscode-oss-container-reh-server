@@ -1,0 +1,19 @@
+[Desktop Entry]
+Name=VSCodium
+Comment=Code Editing. Redefined.
+GenericName=Text Editor
+Exec=codium --unity-launch %F
+Icon=com.vscodium.codium
+Type=Application
+StartupNotify=false
+StartupWMClass=VSCodium
+Categories=TextEditor;Development;IDE;
+MimeType=text/plain;inode/directory;application/x-codium-workspace;
+Actions=new-empty-window;
+Keywords=vscode;
+X-Flatpak=com.vscodium.codium
+
+[Desktop Action new-empty-window]
+Name=New Empty Window
+Exec=codium --new-window %F
+Icon=com.vscodium.codium

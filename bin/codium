@@ -79,7 +79,6 @@ if [ -z "${WORKSPACE_DIR}" ] || [ ! -f "${DISTROBOX_MANIFEST}" ]; then
 fi
 
 # Begin assembling. NOTE: if multiple containers are specified, may need to handle that (can therefore break easily!).
-export DBX_NON_INTERACTIVE=1
 container_name="$(distrobox-assemble create --file "${WORKSPACE_DIR}/.vscode/distrobox.ini" | grep -m1 'distrobox enter' | cut -d' ' -f3)"
 
 # If name is empty (we are assuming this means DBX failed somehow...), just launch the flatpak like nothing happend
@@ -97,11 +96,11 @@ fi
 # TODO: Make less hardcoded
 readonly SERVER_PORT=4444
 
-if distrobox-enter "${container_name}" -- bash -l .vscodium-server/bin/current/bin/codium-server \
-    --host localhost \
-    --telemetry-level off \
-    --without-connection-token \
-    --port "${SERVER_PORT}"; then
+# shellcheck disable=2016
+distrobox-enter "${container_name}" -- bash -l -c '"${HOME}/.vscodium-server/bin/current/bin/codium-server" --host localhost --port '"${SERVER_PORT}"' --telemetry-level off --without-connection-token' &
+sleep 1
+
+if [ -n "$(curl -s 'localhost:'"${SERVER_PORT}"'/version')" ]; then
     notify_log "REH server is listening on ${SERVER_PORT}"
 else
     notify_log 2 "REH server failed to start!"

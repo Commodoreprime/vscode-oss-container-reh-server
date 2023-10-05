@@ -10,6 +10,7 @@ readonly ARGS="$*"
 # TODO: Determine from $0?
 readonly CODE_BIN="/usr/bin/codium"
 readonly FLATPAK_ID="com.vscodium.codium"
+readonly FLATPAK_ARGS="--branch=stable --arch=x86_64 --command=/app/bin/codium --file-forwarding"
 
 # if [ -e "${HOME}/.nix-profile/etc/profile.d/nix.sh" ]; then
 #     . "${HOME}/.nix-profile/etc/profile.d/nix.sh";
@@ -33,14 +34,21 @@ notify_log() {
     printf "[%s] %s\n" "${loglvl}" "$*"
 }
 
+vscode_version() {
+    if [ "$VSCODE_NO_FLATPAK" = 1 ]; then
+        version="$(${CODE_BIN} --version 2>/dev/null | xargs | cut -d' ' -f"${1}")"
+    else
+        version="$(/usr/bin/flatpak run ${FLATPAK_ARGS} "${FLATPAK_ID}" --version | xargs | cut -d' ' -f"${1}")"
+    fi
+    printf "%s" "${version}"
+}
+
 # Launches VSCode with $ARGS.
 launch_vscode() {
     if [ "$VSCODE_NO_FLATPAK" = 1 ]; then
         exec ${CODE_BIN} ${ARGS}
     fi
-    # Maybe do something here?
-    WRAP_ARGS="${ARGS}"
-    exec /usr/bin/flatpak run --branch=stable --arch=x86_64 --command=/app/bin/codium --file-forwarding "${FLATPAK_ID}" ${WRAP_ARGS}
+    exec /usr/bin/flatpak run ${FLATPAK_ARGS} "${FLATPAK_ID}" ${ARGS}
 }
 
 if [ "$VSCODE_NO_SERVER" = 1 ]; then
@@ -81,7 +89,7 @@ fi
 
 # Install / update the REH server into the container via a login shell.
 # TODO: Might be more worthwhile to install the server in the workspace directory, unsure though. For now, containers home will work.
-if ! distrobox-enter "${container_name}" -- bash -l -c "${HOME}/.local/share/remote.oss.update.vscodium-reh.sh"; then
+if ! distrobox-enter "${container_name}" -- bash -l -c '"'"${HOME}"'/.local/share/remote.oss.update.vscodium-reh.sh" '"$(vscode_version 1)"' '"$(vscode_version 2)"''; then
     notify_log 2 "REH server failed to install / update!"
     launch_vscode
 fi

@@ -12,10 +12,6 @@ readonly CODE_BIN="/usr/bin/codium"
 readonly FLATPAK_ID="com.vscodium.codium"
 readonly FLATPAK_ARGS="--branch=stable --arch=x86_64 --command=/app/bin/codium --file-forwarding"
 
-# if [ -e "${HOME}/.nix-profile/etc/profile.d/nix.sh" ]; then
-#     . "${HOME}/.nix-profile/etc/profile.d/nix.sh";
-# fi
-
 set -x
 
 notify_log() {
@@ -38,7 +34,7 @@ vscode_version() {
     if [ "$VSCODE_NO_FLATPAK" = 1 ]; then
         version="$(${CODE_BIN} --version 2>/dev/null | xargs | cut -d' ' -f"${1}")"
     else
-        version="$(/usr/bin/flatpak run ${FLATPAK_ARGS} "${FLATPAK_ID}" --version | xargs | cut -d' ' -f"${1}")"
+        version="$(/usr/bin/flatpak run ${FLATPAK_ARGS} "${FLATPAK_ID}" --version  2>/dev/null | xargs | cut -d' ' -f"${1}")"
     fi
     printf "%s" "${version}"
 }
@@ -56,20 +52,19 @@ if [ "$VSCODE_NO_SERVER" = 1 ]; then
     launch_vscode
 fi
 
-# Iterates up the tree to find the nearest .vscode/ directory.
-# This *should* contain nessisary files (distrobox.conf && settings.json)
-#  (we will worry about those files later...).
-# If WORKSPACE_DIR reaches root w/o a .vscode directory then do nothing.
 WORKSPACE_DIR="${PWD}"
-while [ ! -d "${WORKSPACE_DIR}/.vscode" ]; do
+readonly DISTROBOX_MANIFEST="${WORKSPACE_DIR}/.vscode/distrobox.ini"
+
+# Iterates up the tree to find the nearest .vscode/distrobox.ini file.
+# If it reaches root w/o a .vscode directory then set to nothing.
+while [ ! -d "${DISTROBOX_MANIFEST}" ]; do
     if [ "${WORKSPACE_DIR}" = "/" ]; then
         WORKSPACE_DIR=""
         break
     fi
+    [ -f "${DISTROBOX_MANIFEST}" ] && break
     WORKSPACE_DIR="$(realpath "${WORKSPACE_DIR}/..")"
 done
-
-readonly DISTROBOX_MANIFEST="${WORKSPACE_DIR}/.vscode/distrobox.ini"
 
 # If the workspace directory does not contain a .vscode/ directory,
 #  or .vscode/distrobox.ini is NOT a readable file,
@@ -78,8 +73,11 @@ if [ -z "${WORKSPACE_DIR}" ] || [ ! -f "${DISTROBOX_MANIFEST}" ]; then
     launch_vscode
 fi
 
+# Add some environment variables
+export DBX_NON_INTERACTIVE=1
+
 # Begin assembling. NOTE: if multiple containers are specified, may need to handle that (can therefore break easily!).
-container_name="$(distrobox-assemble create --file "${WORKSPACE_DIR}/.vscode/distrobox.ini" | grep -m1 'distrobox enter' | cut -d' ' -f3)"
+container_name="$(distrobox-assemble create --file "${DISTROBOX_MANIFEST}" | grep -m1 'distrobox enter' | cut -d' ' -f3)"
 
 # If name is empty (we are assuming this means DBX failed somehow...), just launch the flatpak like nothing happend
 if [ -z "${container_name}" ]; then

@@ -7,6 +7,13 @@ set -uexo pipefail
 
 VSCODIUM_DIR="${HOME}/.vscodium-server"
 
+BIN_DIR="${VSCODIUM_DIR}/bin/${VSCODE_COMMIT_ID}"
+
+# If the bin directory for target version is already current and $BID_DIR is a directory, exit early
+set +e; if [ -d "${BIN_DIR}" ] && [ "$(realpath "${VSCODIUM_DIR}/bin/current")" = "${BIN_DIR}" ]; then
+    exit 0
+fi; set -e
+
 mkdir -p "${VSCODIUM_DIR}"
 pushd "${VSCODIUM_DIR}"
 
@@ -29,11 +36,10 @@ for release_tag in $(curl -s 'https://api.github.com/repos/VSCodium/vscodium/tag
     break
 done
 
-BIN_DIR="${VSCODIUM_DIR}/bin/${COMMIT_ID}"
 mkdir -p "${BIN_DIR}"
 pushd "${BIN_DIR}"
 tar -xf "${ARCHIVE_PATH}"
 popd
 
-ln -sfT "${BIN_DIR}" "${VSCODIUM_DIR}/bin/current"
+ln -sfTr "${BIN_DIR}" "${VSCODIUM_DIR}/bin/current"
 rm "${ARCHIVE_PATH}"

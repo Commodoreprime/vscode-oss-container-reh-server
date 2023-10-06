@@ -4,6 +4,14 @@ Implements REH server initalization, updating and startup for containers, target
 Sort of "inspired by" [devcontainers](https://containers.dev/) in that it attempts to reach toward the same end goal.
 Targeted toward OSS builds of VSCode.
 
+## *NOTICE*
+There are some caveats to using these scripts:
+1. There is no functionality to *stop* the REH server
+   - A possible solution is to either:
+      1. Stop the container as a whole.
+      2. *or* wrap the vscode executable (for flatpak, put said wrapper path in the `--command` flag).
+2. These scripts are somewhat fragile, testings have been done. Just, be wary. An extension is in the the works, see [future plans](#future-plans)
+
 ## Installation
 This is essentially made up of only shell scripts, for the time being. Only a few prerequisites are needed:
 

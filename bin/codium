@@ -53,23 +53,22 @@ if [ "$VSCODE_NO_SERVER" = 1 ]; then
 fi
 
 WORKSPACE_DIR="${PWD}"
-readonly DISTROBOX_MANIFEST="${WORKSPACE_DIR}/.vscode/distrobox.ini"
+readonly DISTROBOX_MANIFEST=".vscode/distrobox.ini"
 
 # Iterates up the tree to find the nearest .vscode/distrobox.ini file.
-# If it reaches root w/o a .vscode directory then set to nothing.
-while [ ! -d "${DISTROBOX_MANIFEST}" ]; do
+# If it reaches root w/o matching then set to nothing.
+while [ ! -f "${WORKSPACE_DIR}/${DISTROBOX_MANIFEST}" ]; do
     if [ "${WORKSPACE_DIR}" = "/" ]; then
         WORKSPACE_DIR=""
         break
     fi
-    [ -f "${DISTROBOX_MANIFEST}" ] && break
     WORKSPACE_DIR="$(realpath "${WORKSPACE_DIR}/..")"
 done
 
 # If the workspace directory does not contain a .vscode/ directory,
 #  or .vscode/distrobox.ini is NOT a readable file,
 #  launch flatpak without doing anything else.
-if [ -z "${WORKSPACE_DIR}" ] || [ ! -f "${DISTROBOX_MANIFEST}" ]; then
+if [ -z "${WORKSPACE_DIR}" ]; then
     launch_vscode
 fi
 
@@ -77,7 +76,14 @@ fi
 export DBX_NON_INTERACTIVE=1
 
 # Begin assembling. NOTE: if multiple containers are specified, may need to handle that (can therefore break easily!).
-container_name="$(distrobox-assemble create --file "${DISTROBOX_MANIFEST}" | grep -m1 'distrobox enter' | cut -d' ' -f3)"
+distrobox-assemble create --file "${WORKSPACE_DIR}/${DISTROBOX_MANIFEST}" 2>/dev/stdout | while read -r line; do
+    case "${line}" in
+        "distrobox enter"*) container_name="$(printf "%s" "${line}" | cut -d' ' -f3)"
+        break ;;
+        *"already exists")  container_name="$(printf "%s" "${line}" | cut -d' ' -f1)"
+        break ;;
+    esac
+done
 
 # If name is empty (we are assuming this means DBX failed somehow...), just launch the flatpak like nothing happend
 if [ -z "${container_name}" ]; then

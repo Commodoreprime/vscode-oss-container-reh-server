@@ -1,4 +1,4 @@
-#!/bin/sh
+#!/bin/bash
 # shellcheck disable=2086
 # Wrapper around VSCode (VSCodium)
 
@@ -13,6 +13,7 @@ readonly FLATPAK_ID="com.vscodium.codium"
 readonly FLATPAK_ARGS="--branch=stable --arch=x86_64 --command=/app/bin/codium --file-forwarding"
 
 set -x
+shopt -s lastpipe
 
 notify_log() {
     urgency="low"
@@ -87,6 +88,7 @@ done
 
 # If name is empty (we are assuming this means DBX failed somehow...), just launch the flatpak like nothing happend
 if [ -z "${container_name}" ]; then
+    notify_log 2 "Distrobox failed to create the container"
     launch_vscode
 fi
 
